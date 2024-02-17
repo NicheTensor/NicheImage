@@ -66,6 +66,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
+        self.set_weights_thread: threading.Thread = None
         self.lock = asyncio.Lock()
 
     def serve_axon(self):
@@ -177,6 +178,26 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.error("Error during validation", str(err))
                 bt.logging.debug(print_exception(type(err), err, err.__traceback__))
 
+    def async_set_weights(self):
+        while True:
+            try:
+                bt.logging.info("Setting weights asynchronously")
+                self.set_weights()
+                if self.should_exit:
+                    break
+                time.sleep(60 * 5)  # Set weights once a day
+            except Exception as err:
+                bt.logging.error("Error during set_weights asynchronously", str(err))
+                bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+
+    def run_set_weights_in_background_thread(self):
+        bt.logging.debug("Starting set weights in background thread.")
+        self.set_weights_thread = threading.Thread(
+            target=self.async_set_weights, daemon=True
+        )
+        self.set_weights_thread.start()
+        bt.logging.debug("Started")
+
     def run_in_background_thread(self):
         """
         Starts the validator's operations in a background thread upon entering the context.
@@ -203,6 +224,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __enter__(self):
         self.run_in_background_thread()
+        self.run_set_weights_in_background_thread()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -222,6 +244,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
+            self.set_weights_thread.join(5)
             self.is_running = False
             bt.logging.debug("Stopped")
 
@@ -264,6 +287,7 @@ class BaseValidatorNeuron(BaseNeuron):
             uids=processed_weight_uids,
             weights=processed_weights,
             wait_for_finalization=False,
+            wait_for_inclusion=True,
             version_key=self.spec_version,
         )
 
