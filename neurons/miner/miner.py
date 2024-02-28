@@ -10,12 +10,17 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
         self.validator_logs = {}
         self.miner_info = image_generation_subnet.miner.set_info(self)
+        self.axon.attach(
+            forward_fn=self.temp_forward,
+            blacklist_fn=self.temp_blacklist,
+            priority_fn=self.temp_priority,
+        )
 
     async def forward(
         self, synapse: image_generation_subnet.protocol.ImageGenerating
     ) -> image_generation_subnet.protocol.ImageGenerating:
         
-        bt.logging.info(f"synapse {synapse}")
+        bt.logging.info(f"{synapse.name}: {synapse}")
 
         if synapse.prompt:
             image = image_generation_subnet.miner.generate(
@@ -72,6 +77,21 @@ class Miner(BaseMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
         )
         return prirority
+
+    async def temp_forward(
+        self, synapse: image_generation_subnet.protocol.NicheImageProtocol
+    ) -> image_generation_subnet.protocol.NicheImageProtocol:
+        return await self.forward(synapse)
+    
+    async def temp_blacklist(
+        self, synapse: image_generation_subnet.protocol.NicheImageProtocol
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+    
+    async def temp_priority(
+        self, synapse: image_generation_subnet.protocol.NicheImageProtocol
+    ) -> float:
+        return await self.priority(synapse)
 
 
 # This is the main function, which runs the miner.

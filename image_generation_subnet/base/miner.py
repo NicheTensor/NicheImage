@@ -183,31 +183,9 @@ class BaseMinerNeuron(BaseNeuron):
         Raises:
             Exception: If there's an error while setting weights, the exception is logged for diagnosis.
         """
-        try:
-            # --- query the chain for the most current number of peers on the network
-            chain_weights = torch.zeros(
-                self.subtensor.subnetwork_n(netuid=self.metagraph.netuid)
-            )
-            chain_weights[self.uid] = 1
-
-            # --- Set weights.
-            self.subtensor.set_weights(
-                wallet=self.wallet,
-                netuid=self.metagraph.netuid,
-                uids=torch.arange(0, len(chain_weights)),
-                weights=chain_weights.to("cpu"),
-                wait_for_inclusion=False,
-                version_key=self.spec_version,
-            )
-
-        except Exception as e:
-            bt.logging.error(f"Failed to set weights on chain with exception: { e }")
-
-        bt.logging.info(f"Set weights: {chain_weights}")
+        pass
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
-        bt.logging.info("resync_metagraph()")
-
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)

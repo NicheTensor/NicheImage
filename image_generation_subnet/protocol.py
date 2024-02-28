@@ -39,3 +39,6 @@ class ImageGenerating(bt.Synapse):
 
     def deserialize(self) -> typing.List[str]:
         return self.image
+
+class NicheImageProtocol(ImageGenerating):
+    pass
