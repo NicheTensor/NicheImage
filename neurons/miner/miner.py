@@ -116,7 +116,7 @@ class Miner(BaseMinerNeuron):
                 bt.logging.trace(
                     f"Blacklisting {validator_uid}-validator for exceeding the limit"
                 )
-                return True, "Limit exceeded"
+                return True, f"Limit exceeded for {validator_uid}-validator, {self.validator_logs[validator_uid]}"
 
             return False, "All passed!"
         except Exception as e:
