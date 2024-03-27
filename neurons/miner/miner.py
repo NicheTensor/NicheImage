@@ -57,7 +57,7 @@ class Miner(BaseMinerNeuron):
         for uid, volume in volume_per_validator.items():
             if metagraph.total_stake[uid] >= 10000:
                 volume_per_validator[uid] = max(3, volume)
-            bt.logging.info(f"Volume for {uid}-validator: {volume}")
+            bt.logging.info(f"Volume for {uid}-validator: {volume_per_validator[uid]}")
 
         return volume_per_validator
 
