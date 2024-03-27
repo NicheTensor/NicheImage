@@ -56,7 +56,7 @@ class Miner(BaseMinerNeuron):
         volume_per_validator = dict(zip(valid_uids, volume_per_validator.tolist()))
         for uid, volume in volume_per_validator.items():
             if metagraph.total_stake[uid] >= 10000:
-                volume_per_validator[uid] = max(1, volume)
+                volume_per_validator[uid] = max(3, volume)
             bt.logging.info(f"Volume for {uid}-validator: {volume}")
 
         return volume_per_validator
@@ -147,4 +147,13 @@ if __name__ == "__main__":
     with Miner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
+            try:
+                miner.volume_per_validator = miner.get_volume_per_validator(
+                    miner.metagraph,
+                    miner.config.miner.total_volume,
+                    miner.config.miner.size_preference_factor,
+                    miner.config.miner.min_stake,
+                )
+            except Exception:
+                pass
+            time.sleep(60)
