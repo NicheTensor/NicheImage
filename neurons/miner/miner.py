@@ -72,6 +72,8 @@ class Miner(BaseMinerNeuron):
     async def forward_info(self, synapse: ImageGenerating) -> ImageGenerating:
         synapse.response_dict = self.miner_info
         bt.logging.info(f"Response dict: {self.miner_info}")
+        validator_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+        self.validator_logs[validator_uid]["request_counter"] -= 1
         return synapse
 
     async def forward_text(self, synapse: TextGenerating) -> TextGenerating:
