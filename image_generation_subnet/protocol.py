@@ -10,6 +10,14 @@ MODEL_CONFIG = yaml.load(
     open("generation_models/configs/model_config.yaml"), yaml.FullLoader
 )
 
+
+class Information(bt.Synapse):
+    request_dict: dict = {
+        "get_miner_info": True,
+    }
+    response_dict: dict = {}
+
+
 class ImageGenerating(bt.Synapse):
     prompt: str = pydantic.Field(
         default="",
@@ -56,6 +64,7 @@ class ImageGenerating(bt.Synapse):
         title="Base64 Image",
         description="Base64 encoded image",
     )
+
     def miner_update(self, update: dict):
         return self.copy(update=update)
 
@@ -82,11 +91,13 @@ class ImageGenerating(bt.Synapse):
 
     def wandb_deserialize(self, uid) -> dict:
         import wandb
+
         image = base64_to_pil_image(self.image)
         prompt = self.prompt
         return {
             "images": {uid: wandb.Image(image, caption=prompt)},
         }
+
 
 class TextGenerating(bt.Synapse):
     # Required request input, filled by sending dendrite caller.
@@ -125,16 +136,23 @@ class TextGenerating(bt.Synapse):
             "prompt_input": self.prompt_input,
             "model_name": self.model_name,
         }
-    
+
     def wandb_deserialize(self, uid) -> dict:
         import wandb
-        import pandas as pd
-        
+
         if self.prompt_output:
             try:
-                data = [[self.prompt_input,self.prompt_output["choices"][0]["text"],self.model_name,]]
+                data = [
+                    [
+                        self.prompt_input,
+                        self.prompt_output["choices"][0]["text"],
+                        self.model_name,
+                    ]
+                ]
                 print(data)
-                table = wandb.Table(columns=["prompt_input", "prompt_output", "model_name"], data=data)
+                table = wandb.Table(
+                    columns=["prompt_input", "prompt_output", "model_name"], data=data
+                )
                 return {
                     f"texts_{uid}": table,
                 }

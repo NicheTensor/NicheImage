@@ -3,7 +3,6 @@ import os
 import bittensor as bt
 import random
 import torch
-from image_generation_subnet.protocol import ImageGenerating
 from image_generation_subnet.base.validator import BaseValidatorNeuron
 from neurons.validator.validator_proxy import ValidatorProxy
 from image_generation_subnet.validator import MinerManager
@@ -146,7 +145,8 @@ class Validator(BaseValidatorNeuron):
         self.miner_manager.update_miners_identity()
         self.flattened_uids = []
         self.should_reward_indexes = []
-        self.init_wandb()
+        if self.config.use_wandb:
+            self.init_wandb()
         self.wandb_data = {
             "all_uids_info": self.miner_manager.all_uids_info,
             "scores": {},
@@ -165,8 +165,6 @@ class Validator(BaseValidatorNeuron):
 
     def init_wandb(self):
         import wandb
-        if not self.config.use_wandb:
-            return
 
         config = deepcopy(self.config)
 
@@ -205,11 +203,6 @@ class Validator(BaseValidatorNeuron):
         - Saving the state
         """
 
-        self.wandb_data = {
-            "all_uids_info": self.miner_manager.all_uids_info,
-            "scores": {},
-        }
-
         bt.logging.info("Updating available models & uids")
         num_forward_thread_per_loop = self.config.num_forward_thread_per_loop
         self.miner_manager.update_miners_identity()
@@ -219,7 +212,7 @@ class Validator(BaseValidatorNeuron):
         forward_batch_size = len(self.flattened_uids) // num_forward_thread_per_loop
         if forward_batch_size == 0:
             forward_batch_size = len(self.flattened_uids)
-        sleep_per_batch = loop_base_time / num_forward_thread_per_loop * 0.75
+        sleep_per_batch = loop_base_time / num_forward_thread_per_loop * 0.9
         bt.logging.info(
             (
                 f"Forwarding {len(self.flattened_uids)} uids\n"
@@ -232,7 +225,9 @@ class Validator(BaseValidatorNeuron):
         loop_start = time.time()
         while self.flattened_uids:
             batch_uids = self.flattened_uids[:forward_batch_size]
-            batch_should_reward_indexes = self.should_reward_indexes[:forward_batch_size]
+            batch_should_reward_indexes = self.should_reward_indexes[
+                :forward_batch_size
+            ]
             batch_model_names = [
                 self.miner_manager.all_uids_info[uid]["model_name"]
                 for uid in batch_uids
@@ -270,6 +265,15 @@ class Validator(BaseValidatorNeuron):
         if self.config.use_wandb:
             try:
                 import wandb
+
+                wandb_uids_info = deepcopy(self.miner_manager.all_uids_info)
+                for k, v in wandb_uids_info.items():
+                    wandb_uids_info[k]["scores"] = (
+                        sum(v["scores"]) / len(v["scores"]) if v["scores"] else 0
+                    )
+                self.wandb_data = {
+                    "all_uids_info": wandb_uids_info,
+                }
                 wandb.log(self.wandb_data)
             except Exception:
                 pass
@@ -296,10 +300,14 @@ class Validator(BaseValidatorNeuron):
             self.miner_manager.all_uids_info[uid]["rate_limit"] for uid in _uids
         ]
         for uid, rate_limit, model_name in zip(_uids, rate_limit_per_uid, _model_names):
-            if model_name:
-                self.flattened_uids += [uid] * int(
-                    math.ceil(rate_limit * self.config.volume_utilization_factor)
-                )
+            rate_limit_usable = (
+                1
+                if self.config.debug_validator
+                else int(math.ceil(rate_limit * self.config.volume_utilization_factor))
+                - 1
+            )
+            if model_name in self.nicheimage_catalogue:
+                self.flattened_uids = self.flattened_uids + [uid] * rate_limit_usable
         random.shuffle(self.flattened_uids)
 
         should_reward_indexes = [0] * len(self.flattened_uids)
@@ -354,6 +362,7 @@ class Validator(BaseValidatorNeuron):
                         for uid, response in zip(forward_uids, responses):
                             try:
                                 import wandb
+
                                 wandb_data = response.wandb_deserialize(uid)
                                 wandb.log(wandb_data)
                             except Exception:
@@ -366,7 +375,9 @@ class Validator(BaseValidatorNeuron):
                     reward_uids = [
                         uid for uid, should_reward in uid_data if should_reward
                     ]
-                    bt.logging.info(f"Received {len(responses)} responses, calculating rewards")
+                    bt.logging.info(
+                        f"Received {len(responses)} responses, calculating rewards"
+                    )
                     if reward_uids:
                         if callable(reward_url):
                             reward_uids, rewards = reward_url(
@@ -374,7 +385,13 @@ class Validator(BaseValidatorNeuron):
                             )
                         else:
                             reward_uids, rewards = ig_subnet.validator.get_reward(
-                                reward_url, base_synapse, reward_responses, reward_uids, self.nicheimage_catalogue[model_name].get("timeout", 12)
+                                reward_url,
+                                base_synapse,
+                                reward_responses,
+                                reward_uids,
+                                self.nicheimage_catalogue[model_name].get(
+                                    "timeout", 12
+                                ),
                             )
 
                         # Scale Reward based on Miner Volume
@@ -424,7 +441,9 @@ class Validator(BaseValidatorNeuron):
                 synapses = challenge_url(synapses)
             else:
                 assert isinstance(challenge_url, str)
-                synapses = ig_subnet.validator.get_challenge(challenge_url, synapses, backup_func)
+                synapses = ig_subnet.validator.get_challenge(
+                    challenge_url, synapses, backup_func
+                )
         return synapses, batched_uids
 
     def update_scores_on_chain(self):
@@ -485,7 +504,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Validator running...", time.time())
             try:
-                os.system("wandb artifact cache cleanup --remove-temp 300MB")
+                os.system("rm -rf wandb")
             except Exception:
                 pass
-            time.sleep(60)
+            time.sleep(360)

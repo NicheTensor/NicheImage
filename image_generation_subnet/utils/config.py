@@ -155,7 +155,7 @@ def add_args(cls, parser):
             "--volume_utilization_factor",
             type=float,
             help="Determine how much of the volume to be used for synthentic quering.",
-            default=0.9,
+            default=0.8,
         )
 
         parser.add_argument(
@@ -253,6 +253,13 @@ def add_args(cls, parser):
             help="The endpoint to send generate requests to.",
             default="http://nicheimage.nichetensor.com/challenge/llm_prompt",
         )
+
+        parser.add_argument(
+            "--debug_validator",
+            action="store_true",
+            help="If set, we will run the validator in debug mode.",
+            default=False,
+        )
         # TODO: add more challenge endpoints for categories
 
     else:
@@ -288,7 +295,7 @@ def add_args(cls, parser):
             "--miner.total_volume",
             type=int,
             help="The total volume of requests to be served per 10 minutes",
-            default=360,
+            default=40,
         )
 
         parser.add_argument(
@@ -309,6 +316,13 @@ def add_args(cls, parser):
             type=int,
             help="The interval to limit the number of requests",
             default=600,
+        )
+
+        parser.add_argument(
+            "--miner.max_concurrent_requests",
+            type=int,
+            help="The maximum number of concurrent requests to be served",
+            default=4,
         )
 
 

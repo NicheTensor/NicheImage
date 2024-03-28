@@ -1,7 +1,7 @@
 import bittensor as bt
 from image_generation_subnet.protocol import ImageGenerating
 import torch
-import math
+from image_generation_subnet.utils.volume_setting import get_volume_per_validator
 
 
 class MinerManager:
@@ -48,20 +48,22 @@ class MinerManager:
                 {
                     "scores": [],
                     "model_name": "",
-                    "rate_limit": 5,
-                    "total_volume": 100,
-                    "min_stake": 0,
                 },
             )
             model_name = info.get("model_name", "")
-            miner_state["rate_limit"] = info.get("volume_per_validator", {}).get(
-                str(self.validator.uid), 5
-            )
-            miner_state["total_volume"] = info.get("total_volume", 100)
-            miner_state["min_stake"] = info.get("min_stake", 0)
+            miner_state["total_volume"] = info.get("total_volume", 40)
+            miner_state["min_stake"] = info.get("min_stake", 10000)
             miner_state["reward_scale"] = max(
-                min(miner_state["total_volume"] ** 0.5 / 10, 1), 0
+                min(miner_state["total_volume"] ** 0.5 / 1000**0.5, 1), 0
             )
+            volume_per_validator = get_volume_per_validator(
+                self.validator.metagraph,
+                miner_state["total_volume"],
+                1.03,
+                miner_state["min_stake"],
+                False,
+            )
+            miner_state["rate_limit"] = volume_per_validator[self.validator.uid]
 
             if miner_state["model_name"] == model_name:
                 continue
