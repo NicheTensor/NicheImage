@@ -1,4 +1,4 @@
-bittensor==6.9.3
+bittensor==7.2.0
 diffusers==0.28.0
 transformers==4.40.0
 accelerate==0.27.2

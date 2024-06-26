@@ -61,6 +61,12 @@ class BaseNeuron(ABC):
         self.config.merge(base_config)
         self.check_config(self.config)
 
+        bt.logging.enable_default()
+        if self.config.logging.trace:
+            bt.logging.enable_trace()
+        if self.config.logging.debug:
+            bt.logging.enable_debug()
+
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
 

@@ -16,7 +16,7 @@ MODEL_CONFIG = yaml.load(
 class Information(bt.Synapse):
     request_dict: dict = {}
     response_dict: dict = {}
-
+    computed_body_hash: str = pydantic.Field("", title="Computed Body Hash", frozen=False)
 
 class ImageGenerating(bt.Synapse):
     prompt: str = pydantic.Field(
@@ -59,11 +59,13 @@ class ImageGenerating(bt.Synapse):
         title="Dictionary contains response",
         description="Dict contains arbitary information",
     )
-    image = pydantic.Field(
+    image: str = pydantic.Field(
         default="",
         title="Base64 Image",
         description="Base64 encoded image",
     )
+    # avoid warnings
+    computed_body_hash: str = pydantic.Field("", title="Computed Body Hash", frozen=False)
 
     def miner_update(self, update: dict):
         return self.copy(update=update)
@@ -143,7 +145,8 @@ class TextGenerating(bt.Synapse):
     model_name: str = ""
     prompt_output: typing.Optional[dict] = {}
     pipeline_params: dict = {}
-
+    # avoid warnings
+    computed_body_hash: str = pydantic.Field("", title="Computed Body Hash", frozen=False)
     def miner_update(self, update: dict):
         self.prompt_output = update
 
