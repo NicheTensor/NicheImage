@@ -2,7 +2,7 @@ bittensor==7.2.0
 diffusers==0.28.0
 transformers==4.40.0
 accelerate==0.27.2
-cryptography==42.0.0
+cryptography==42.0.5
 ImageHash==4.3.1
 loguru==0.7.0
 Pillow==10.2.0
