@@ -6,7 +6,6 @@ cryptography==42.0.5
 ImageHash==4.3.1
 loguru==0.7.0
 Pillow==10.2.0
-pydantic==1.10.13
 PyYAML==6.0.1
 Requests==2.31.0
 setuptools==68.0.0
