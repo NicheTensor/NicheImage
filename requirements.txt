@@ -17,7 +17,7 @@ httpx==0.26.0
 ray[serve]==2.23.0
 git+https://github.com/toilaluan/controlnet_aux.git
 timm==1.0.3
-numpy==1.26.4
+numpy==1.26
 pandas
 typesense
 clean-text[gpl]
